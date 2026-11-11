@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Nichts lädt von fremden Servern und nichts wird dorthin geschickt. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Kosten</title>
+  <meta name="description" content="Kosten-Tracker. Alle Daten bleiben auf diesem Gerät.">
+  <meta name="theme-color" content="#f5f4fb" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0d0e17" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Kosten">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="kopf">
+    <button type="button" id="monat-zurueck" class="pfeil" aria-label="Vorheriger Monat">‹</button>
+    <h1 id="titel">Kosten</h1>
+    <button type="button" id="monat-vor" class="pfeil" aria-label="Nächster Monat">›</button>
+  </header>
+
+  <main id="inhalt"></main>
+
+  <button type="button" id="neu" class="plus" aria-label="Ausgabe erfassen">+</button>
+
+  <nav class="tabs" id="tabs" aria-label="Bereiche">
+    <span class="tab-blase" id="tab-blase" aria-hidden="true"></span>
+    <button type="button" data-tab="ausgaben">Ausgaben</button>
+    <button type="button" data-tab="uebersicht">Statistik</button>
+    <button type="button" data-tab="fix">Fixkosten</button>
+    <button type="button" data-tab="mehr">Mehr</button>
+  </nav>
+
+  <div id="meldung" class="meldung" role="status" aria-live="polite" hidden></div>
+
+  <!-- Ausgabe erfassen oder ändern -->
+  <dialog id="dlg-ausgabe" aria-labelledby="dlg-ausgabe-titel">
+    <form method="dialog" id="form-ausgabe" novalidate>
+      <h2 id="dlg-ausgabe-titel">Ausgabe</h2>
+      <label class="feld betrag-feld">
+        <span>Betrag</span>
+        <span class="mit-euro"><input id="a-betrag" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" enterkeyhint="done"><span aria-hidden="true">€</span></span>
+      </label>
+      <p id="a-fehler" class="fehler" role="alert" hidden></p>
+      <fieldset class="feld">
+        <legend>Kategorie</legend>
+        <div id="a-kategorien" class="chips"></div>
+      </fieldset>
+      <label class="feld">
+        <span>Datum</span>
+        <input id="a-datum" type="date" required>
+      </label>
+      <label class="feld">
+        <span>Notiz</span>
+        <input id="a-notiz" type="text" maxlength="200" autocomplete="off" placeholder="optional" enterkeyhint="done">
+      </label>
+      <div class="knoepfe">
+        <button type="button" id="a-loeschen" class="still gefahr" hidden>Löschen</button>
+        <span class="platz"></span>
+        <button type="button" class="still" data-schliessen>Abbrechen</button>
+        <button type="submit" class="haupt">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Wiederkehrende Kosten erfassen oder ändern -->
+  <dialog id="dlg-fix" aria-labelledby="dlg-fix-titel">
+    <form method="dialog" id="form-fix" novalidate>
+      <h2 id="dlg-fix-titel">Fixkosten</h2>
+      <label class="feld">
+        <span>Name</span>
+        <input id="f-name" type="text" maxlength="60" autocomplete="off" placeholder="z. B. Miete, Handyvertrag" enterkeyhint="next">
+      </label>
+      <label class="feld betrag-feld">
+        <span>Betrag</span>
+        <span class="mit-euro"><input id="f-betrag" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" enterkeyhint="done"><span aria-hidden="true">€</span></span>
+      </label>
+      <p id="f-fehler" class="fehler" role="alert" hidden></p>
+      <label class="feld">
+        <span>Kategorie</span>
+        <select id="f-kategorie"></select>
+      </label>
+      <label class="feld">
+        <span>Rhythmus</span>
+        <select id="f-rhythmus"></select>
+      </label>
+      <label class="feld">
+        <span>Erste Fälligkeit</span>
+        <input id="f-start" type="date" required>
+      </label>
+      <label class="feld">
+        <span>Endet am</span>
+        <input id="f-ende" type="date">
+      </label>
+      <p class="hinweis">„Endet am“ leer lassen, solange der Vertrag läuft. Bei einer Kündigung das letzte Abbuchungsdatum eintragen.</p>
+      <div class="knoepfe">
+        <button type="button" id="f-loeschen" class="still gefahr" hidden>Löschen</button>
+        <span class="platz"></span>
+        <button type="button" class="still" data-schliessen>Abbrechen</button>
+        <button type="submit" class="haupt">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Budget -->
+  <dialog id="dlg-budget" aria-labelledby="dlg-budget-titel">
+    <form method="dialog" id="form-budget" novalidate>
+      <h2 id="dlg-budget-titel">Monatsbudget</h2>
+      <label class="feld betrag-feld">
+        <span>Budget</span>
+        <span class="mit-euro"><input id="b-betrag" type="text" inputmode="decimal" autocomplete="off" placeholder="kein Budget" enterkeyhint="done"><span aria-hidden="true">€</span></span>
+      </label>
+      <p id="b-fehler" class="fehler" role="alert" hidden></p>
+      <label class="schalter">
+        <input id="b-nur-monat" type="checkbox">
+        <span id="b-nur-monat-text">Nur für diesen Monat</span>
+      </label>
+      <p class="hinweis">Das Budget gilt für alles zusammen: Ausgaben und Fixkosten. Feld leeren, um das Budget zu entfernen.</p>
+      <div class="knoepfe">
+        <span class="platz"></span>
+        <button type="button" class="still" data-schliessen>Abbrechen</button>
+        <button type="submit" class="haupt">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Rückfrage -->
+  <dialog id="dlg-frage" aria-labelledby="frage-text">
+    <form method="dialog">
+      <p id="frage-text"></p>
+      <div class="knoepfe">
+        <span class="platz"></span>
+        <button type="submit" value="nein" class="still">Abbrechen</button>
+        <button type="submit" value="ja" id="frage-ja" class="haupt">Ja</button>
+      </div>
+    </form>
+  </dialog>
+
+  <input id="datei-einlesen" type="file" accept="application/json,.json" hidden>
+
+  <noscript><p class="leer">Diese App braucht JavaScript.</p></noscript>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

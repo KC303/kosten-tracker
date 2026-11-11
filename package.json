@@ -1,0 +1,11 @@
+{
+  "name": "kosten-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Kosten-Tracker als Web-App fürs Handy. Daten bleiben auf dem Gerät.",
+  "scripts": {
+    "test": "node --test",
+    "start": "python3 -m http.server 8765 --bind 127.0.0.1"
+  }
+}

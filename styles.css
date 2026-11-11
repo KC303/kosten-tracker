@@ -1,0 +1,883 @@
+/* Helle Karten auf zartem Violett, dunkel in Nachtblau. Hell und dunkel nach Systemeinstellung.
+   Die acht Kategorienfarben sind auf Unterscheidbarkeit geprüft (auch bei Farbfehlsichtigkeit). */
+:root {
+  color-scheme: light dark;
+  --grund: #f5f4fb;
+  --flaeche: #ffffff;
+  --text: #14131f;
+  --leise: #66647c;
+  --linie: #e7e5f1;
+  --feld: #f5f4fb;
+  --akzent: #6250d6;
+  --auf-akzent: #ffffff;
+  --akzent-zart: #eceafb;
+  --gitter: #ebe9f3;
+  --achse: #c9c6d9;
+  --schatten: 0 8px 24px rgba(40, 28, 120, 0.18);
+  --karten-schatten: 0 1px 2px rgba(40, 28, 120, 0.06);
+  --radius: 20px;
+  --tabs-hoehe: 62px;
+  --tabs-abstand: 10px;
+  --karte: rgba(255, 255, 255, 0.8);
+  --glas: rgba(255, 255, 255, 0.46);
+  --glas-kante: rgba(255, 255, 255, 0.85);
+  --glas-licht: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+  --blase: rgba(98, 80, 214, 0.14);
+  --fleck-1: rgba(98, 80, 214, 0.2);
+  --fleck-2: rgba(235, 104, 52, 0.13);
+  --fleck-3: rgba(27, 175, 122, 0.13);
+  --feder: cubic-bezier(0.3, 1.45, 0.5, 1); /* schwingt leicht über, wirkt wie ein Tropfen */
+  --sanft: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --kat-0: #2a78d6;
+  --kat-1: #eb6834;
+  --kat-2: #1baf7a;
+  --kat-3: #eda100;
+  --kat-4: #e87ba4;
+  --kat-5: #008300;
+  --kat-6: #6250d6;
+  --kat-7: #e34948;
+  --kat-n: #a9a7ba;
+
+  --reihe-ausgaben: #6250d6;
+  --reihe-fix: #eb6834;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --grund: #0d0e17;
+    --flaeche: #181a27;
+    --text: #f1f0f7;
+    --leise: #a3a2b8;
+    --linie: #2a2c3d;
+    --feld: #0d0e17;
+    --akzent: #9085e9;
+    --auf-akzent: #0d0e17;
+    --akzent-zart: #25254a;
+    --gitter: #262838;
+    --achse: #3a3c50;
+    --schatten: 0 8px 24px rgba(0, 0, 0, 0.6);
+    --karten-schatten: none;
+    --karte: rgba(28, 30, 46, 0.74);
+    --glas: rgba(34, 36, 56, 0.55);
+    --glas-kante: rgba(255, 255, 255, 0.14);
+    --glas-licht: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+    --blase: rgba(144, 133, 233, 0.24);
+    --fleck-1: rgba(98, 80, 214, 0.3);
+    --fleck-2: rgba(217, 89, 38, 0.14);
+    --fleck-3: rgba(25, 158, 112, 0.14);
+
+    --kat-0: #3987e5;
+    --kat-1: #d95926;
+    --kat-2: #199e70;
+    --kat-3: #c98500;
+    --kat-4: #d55181;
+    --kat-5: #008300;
+    --kat-6: #9085e9;
+    --kat-7: #e66767;
+    --kat-n: #6f6e84;
+
+    --reihe-ausgaben: #9085e9;
+    --reihe-fix: #d95926;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  background: var(--grund);
+  color: var(--text);
+  font: 17px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-bottom: calc(var(--tabs-hoehe) + var(--tabs-abstand) + env(safe-area-inset-bottom) + 100px);
+  overscroll-behavior-y: none;
+}
+
+/* Fließende Farbflächen hinter allem: Sie geben dem Glas etwas, das durchscheint. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -25%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 28% at 22% 18%, var(--fleck-1), transparent 70%),
+    radial-gradient(34% 26% at 82% 38%, var(--fleck-2), transparent 70%),
+    radial-gradient(44% 32% at 45% 88%, var(--fleck-3), transparent 70%);
+  animation: treib 26s ease-in-out infinite alternate;
+}
+
+button, input, select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+[hidden] { display: none !important; }
+
+/* ---------- Kategorienfarben ---------- */
+
+.kat-0 { --farbe: var(--kat-0); }
+.kat-1 { --farbe: var(--kat-1); }
+.kat-2 { --farbe: var(--kat-2); }
+.kat-3 { --farbe: var(--kat-3); }
+.kat-4 { --farbe: var(--kat-4); }
+.kat-5 { --farbe: var(--kat-5); }
+.kat-6 { --farbe: var(--kat-6); }
+.kat-7 { --farbe: var(--kat-7); }
+.kat-n { --farbe: var(--kat-n); }
+
+.punkt {
+  flex: none;
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--farbe);
+}
+
+/* ---------- Kopf ---------- */
+
+.kopf {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: calc(env(safe-area-inset-top) + 8px) 8px 8px;
+  background: var(--grund); /* für Browser ohne color-mix */
+  background: color-mix(in srgb, var(--grund) 62%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
+}
+
+.kopf h1 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 650;
+  text-align: center;
+  flex: 1;
+}
+
+.pfeil {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 22px;
+  background: none;
+  color: var(--akzent);
+  font-size: 30px;
+  line-height: 1;
+  padding-bottom: 4px;
+}
+.pfeil { transition: transform 0.25s var(--feder), background 0.2s; }
+.pfeil:active { background: var(--akzent-zart); transform: scale(0.82); }
+.pfeil.unsichtbar { visibility: hidden; }
+
+/* ---------- Inhalt ---------- */
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 8px 16px 0;
+}
+
+.karte {
+  background: var(--karte);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--karten-schatten), var(--glas-licht);
+}
+.karte.ohne-rand { padding: 0; overflow: hidden; }
+.karten-kopf { padding: 16px 16px 6px; }
+
+/* Die Kopfkarte trägt die Akzentfarbe, Schrift darauf ist weiß. */
+.karte.held {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: linear-gradient(135deg, #5443c8 0%, #6d55e0 100%);
+  color: #ffffff;
+  box-shadow: var(--schatten), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+/* Zwei weiche Farbtropfen treiben langsam durch die Karte. */
+.karte.held::before, .karte.held::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(30px);
+  pointer-events: none;
+}
+.karte.held::before {
+  width: 210px; height: 210px; right: -60px; top: -80px;
+  background: rgba(240, 120, 170, 0.55);
+  animation: tropfen-a 13s ease-in-out infinite alternate;
+}
+.karte.held::after {
+  width: 190px; height: 190px; left: -70px; bottom: -90px;
+  background: rgba(60, 150, 240, 0.5);
+  animation: tropfen-b 16s ease-in-out infinite alternate;
+}
+.held-zeile { font-size: 15px; color: rgba(255, 255, 255, 0.86); }
+.held .gross { color: #ffffff; }
+.held-knopf {
+  margin-top: 12px;
+  min-height: 40px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 15px;
+}
+.held-knopf {
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  transition: transform 0.3s var(--feder), background 0.2s;
+}
+.held-knopf:active { background: rgba(255, 255, 255, 0.32); transform: scale(0.94); }
+
+.gross {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin: 2px 0 4px;
+}
+
+.leise { color: var(--leise); font-size: 15px; }
+.klein { font-size: 13px; }
+.betrag { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.fortschritt {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.28);
+  overflow: hidden;
+  margin: 14px 0 8px;
+}
+.fortschritt > span {
+  position: relative;
+  display: block;
+  height: 100%;
+  background: #ffffff;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.fortschritt.ueberzogen > span {
+  background: repeating-linear-gradient(-45deg, #ffffff 0 6px, rgba(255, 255, 255, 0.45) 6px 12px);
+}
+
+.zeile-zwei {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 2px;
+}
+
+h2.abschnitt {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--leise);
+  margin: 20px 4px 6px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.liste {
+  background: var(--karte);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 0 0 8px;
+  list-style: none;
+  padding: 0;
+  box-shadow: var(--karten-schatten);
+}
+.liste.flach { border-radius: 0; margin: 0; box-shadow: none; background: none; }
+.liste > li + li { border-top: 1px solid var(--linie); }
+
+.posten {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 16px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+button.posten { transition: transform 0.25s var(--feder), background 0.2s; }
+button.posten:active { background: var(--akzent-zart); transform: scale(0.975); }
+
+.posten .haupttext {
+  flex: 1;
+  min-width: 0;
+}
+.posten .haupttext > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.posten .betrag { font-weight: 600; }
+.posten.beendet { color: var(--leise); }
+.posten.beendet .punkt { opacity: 0.4; }
+
+.leer {
+  text-align: center;
+  color: var(--leise);
+  padding: 40px 24px;
+}
+
+details.fixblock {
+  background: var(--karte);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  overflow: hidden;
+  box-shadow: var(--karten-schatten);
+}
+details.fixblock > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+details.fixblock > summary::-webkit-details-marker { display: none; }
+details.fixblock > summary .dreh::before { content: "›"; display: inline-block; margin-right: 8px; color: var(--akzent); transition: transform 0.15s; }
+details.fixblock[open] > summary .dreh::before { transform: rotate(90deg); }
+details.fixblock .liste { border-radius: 0; margin: 0; border-top: 1px solid var(--linie); box-shadow: none; }
+
+/* ---------- Statistik ---------- */
+
+.kacheln {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.kachel {
+  background: var(--karte);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  min-width: 0;
+  box-shadow: var(--karten-schatten), var(--glas-licht);
+}
+.kachel-wert {
+  font-size: 22px;
+  font-weight: 650;
+  margin: 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.segmente {
+  display: flex;
+  gap: 2px; /* Abstand in Flächenfarbe trennt die Teile */
+  height: 10px;
+}
+.seg {
+  flex: 1 1 0;
+  min-width: 3px;
+  background: var(--farbe);
+  border-radius: 2px;
+}
+.seg:first-child { border-top-left-radius: 5px; border-bottom-left-radius: 5px; }
+.seg:last-child { border-top-right-radius: 5px; border-bottom-right-radius: 5px; }
+
+.d-rahmen { position: relative; }
+.diagramm { display: block; width: 100%; height: auto; overflow: visible; }
+.diagramm.fadenkreuz { touch-action: pan-y; }
+.diagramm text { font-size: 11px; fill: var(--leise); font-variant-numeric: tabular-nums; }
+.diagramm text.d-wert { font-size: 12px; font-weight: 650; fill: var(--text); paint-order: stroke; stroke: var(--flaeche); stroke-width: 4px; stroke-linejoin: round; }
+.diagramm text.d-xlabel.aktiv { fill: var(--text); font-weight: 650; }
+.d-gitter { stroke: var(--gitter); stroke-width: 1; }
+.d-achse { stroke: var(--achse); stroke-width: 1; }
+.d-budget { stroke: var(--leise); stroke-width: 1.5; }
+.d-treffer { fill: transparent; }
+
+.reihe-ausgaben { fill: var(--reihe-ausgaben); }
+.reihe-fix { fill: var(--reihe-fix); }
+.d-monat { cursor: pointer; outline: none; }
+.d-monat:not(.aktiv) .reihe-ausgaben,
+.d-monat:not(.aktiv) .reihe-fix { opacity: 0.4; }
+.d-monat:focus-visible .d-treffer { stroke: var(--akzent); stroke-width: 2; }
+
+.d-linie { fill: none; stroke: var(--akzent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.d-linie.kommend { opacity: 0.38; }
+.d-flaeche { fill: var(--akzent); opacity: 0.1; }
+.d-punkt { fill: var(--akzent); stroke: var(--flaeche); stroke-width: 2; }
+.d-lot { stroke: var(--achse); stroke-width: 1; }
+
+.d-tipp {
+  position: absolute;
+  top: -30px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--text);
+  color: var(--flaeche);
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--schatten);
+}
+.d-tipp strong { font-size: 14px; }
+
+.d-legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--leise);
+}
+.d-legende span { display: inline-flex; align-items: center; gap: 6px; }
+.d-legende i { display: inline-block; flex: none; }
+.d-legende .schluessel { width: 10px; height: 10px; border-radius: 3px; }
+.d-legende .schluessel.reihe-ausgaben { background: var(--reihe-ausgaben); }
+.d-legende .schluessel.reihe-fix { background: var(--reihe-fix); }
+.d-legende .strich { width: 16px; height: 2px; border-radius: 1px; }
+.d-legende .d-linie-strich { background: var(--akzent); }
+.d-legende .d-linie-strich.kommend { opacity: 0.38; }
+.d-legende .d-budget-strich { background: var(--leise); }
+
+/* ---------- Knöpfe ---------- */
+
+.haupt, .still, .breit {
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 14px;
+  border: 0;
+  font-weight: 600;
+}
+.haupt { background: var(--akzent); color: var(--auf-akzent); }
+.haupt, .still { transition: transform 0.3s var(--feder), opacity 0.2s, background 0.2s; }
+.haupt:active { opacity: 0.8; transform: scale(0.94); }
+.still:active { transform: scale(0.94); }
+.still { background: none; color: var(--akzent); }
+.still:active { background: var(--akzent-zart); }
+.still.gefahr { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+
+.breit {
+  display: block;
+  width: 100%;
+  background: none;
+  text-align: left;
+  font-weight: 400;
+  border-radius: 0;
+  min-height: 52px;
+  padding: 12px 16px;
+}
+.breit:active { background: var(--akzent-zart); }
+
+.plus {
+  position: fixed;
+  right: calc(18px + env(safe-area-inset-right));
+  bottom: calc(var(--tabs-hoehe) + var(--tabs-abstand) + env(safe-area-inset-bottom) + 16px);
+  z-index: 6;
+  width: 64px;
+  height: 64px;
+  border-radius: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background:
+    radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.42), transparent 55%),
+    linear-gradient(135deg, #5443c8 0%, #7a5ff0 100%);
+  color: #ffffff;
+  font-size: 36px;
+  font-weight: 300;
+  line-height: 1;
+  padding-bottom: 5px;
+  box-shadow: var(--schatten), inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -6px 12px rgba(40, 28, 120, 0.35);
+  transition: transform 0.4s var(--feder);
+}
+.plus:active { transform: scale(0.86) rotate(90deg); }
+/* Nach dem Speichern läuft einmal ein Ring nach außen. */
+.plus.puls::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  border: 2px solid var(--akzent);
+  animation: ring 0.7s var(--sanft) both;
+  pointer-events: none;
+}
+
+/* ---------- Leiste unten: schwebendes Glas, die Blase wandert zum gewählten Bereich ---------- */
+
+.tabs {
+  position: fixed;
+  left: calc(14px + env(safe-area-inset-left));
+  right: calc(14px + env(safe-area-inset-right));
+  bottom: calc(var(--tabs-abstand) + env(safe-area-inset-bottom));
+  z-index: 5;
+  max-width: 612px;
+  margin: 0 auto;
+  height: var(--tabs-hoehe);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 6px;
+  border-radius: calc(var(--tabs-hoehe) / 2);
+  background: var(--glas);
+  border: 1px solid var(--glas-kante);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  box-shadow: 0 10px 30px rgba(30, 20, 90, 0.18), var(--glas-licht);
+}
+.tab-blase {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 6px;
+  width: calc((100% - 12px) / 4);
+  transform: translateX(calc(var(--tab, 0) * 100%));
+  transition: transform 0.55s var(--feder);
+  pointer-events: none;
+}
+.tab-blase::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 25px;
+  background: var(--blase);
+  box-shadow: var(--glas-licht), 0 2px 8px rgba(40, 28, 120, 0.12);
+}
+.tab-blase.schwappt::before { animation: schwapp 0.55s var(--sanft); }
+.tabs button {
+  position: relative;
+  z-index: 1;
+  border: 0;
+  background: none;
+  font-size: 14px;
+  color: var(--leise);
+  border-radius: 25px;
+  transition: color 0.25s, transform 0.3s var(--feder);
+}
+.tabs button:active { transform: scale(0.92); }
+.tabs button[aria-current="page"] {
+  color: var(--akzent);
+  font-weight: 650;
+}
+
+/* ---------- Dialoge ---------- */
+
+dialog {
+  width: min(100vw - 24px, 520px);
+  max-height: calc(100dvh - env(safe-area-inset-top) - 24px);
+  margin: calc(env(safe-area-inset-top) + 12px) auto auto;
+  padding: 20px 16px 16px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--flaeche);
+  background: color-mix(in srgb, var(--flaeche) 88%, transparent);
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  backdrop-filter: blur(26px) saturate(180%);
+  border: 1px solid var(--glas-kante);
+  color: var(--text);
+  box-shadow: var(--schatten), var(--glas-licht);
+  overflow-y: auto;
+}
+dialog[open] { animation: herein 0.45s var(--feder); }
+dialog::backdrop {
+  background: rgba(13, 14, 23, 0.38);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: blende 0.25s ease-out;
+}
+
+dialog h2 { margin: 0 0 14px; font-size: 20px; }
+
+.feld {
+  display: block;
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.feld > span:first-child, .feld > legend {
+  display: block;
+  font-size: 13px;
+  color: var(--leise);
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+input[type="text"], input[type="date"], select {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid var(--linie);
+  border-radius: 12px;
+  background-color: var(--feld);
+  font-size: 17px; /* unter 16px zoomt iOS beim Antippen hinein */
+  -webkit-appearance: none;
+  appearance: none;
+}
+input[type="date"] { text-align: left; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; } /* iOS zentriert sonst */
+select {
+  padding-right: 38px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--leise) 50%),
+    linear-gradient(135deg, var(--leise) 50%, transparent 50%);
+  background-position: calc(100% - 21px) 50%, calc(100% - 15px) 50%;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+}
+input:focus-visible, select:focus-visible, button:focus-visible {
+  outline: 2px solid var(--akzent);
+  outline-offset: 2px;
+}
+
+.mit-euro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+}
+.betrag-feld input {
+  font-size: 28px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  min-height: 56px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chips label { position: relative; }
+.chips input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+}
+.chips span {
+  transition: transform 0.3s var(--feder), background 0.2s, border-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--linie);
+  background: var(--feld);
+  font-size: 15px;
+}
+.chips input:checked + span {
+  background: var(--akzent-zart);
+  border-color: var(--akzent);
+  font-weight: 600;
+  animation: hups 0.4s var(--feder);
+}
+.chips label:active span { transform: scale(0.93); }
+.chips input:focus-visible + span { outline: 2px solid var(--akzent); outline-offset: 2px; }
+
+.schalter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  min-height: 44px;
+}
+.schalter input { width: 22px; height: 22px; accent-color: var(--akzent); }
+
+.knoepfe {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+.platz { flex: 1; }
+
+.fehler { margin: -6px 0 12px; font-size: 15px; font-weight: 600; }
+.fehler::before { content: "! "; }
+.hinweis { color: var(--leise); font-size: 14px; margin: 0 0 12px; }
+
+/* ---------- Mehr ---------- */
+
+.kat-zeile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 4px 4px 16px;
+  min-height: 48px;
+}
+.mit-punkt { display: flex; align-items: center; gap: 12px; }
+.kat-zeile button {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: none;
+  color: var(--leise);
+  font-size: 22px;
+}
+.neu-kat {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.neu-kat input { flex: 1; min-width: 0; }
+
+.meldung {
+  position: fixed;
+  left: 50%;
+  translate: -50% 0;
+  bottom: calc(var(--tabs-hoehe) + var(--tabs-abstand) + env(safe-area-inset-bottom) + 100px);
+  z-index: 20;
+  max-width: calc(100vw - 48px);
+  padding: 10px 18px;
+  border-radius: 22px;
+  background: var(--text);
+  background: color-mix(in srgb, var(--text) 82%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  color: var(--flaeche);
+  font-size: 15px;
+  box-shadow: var(--schatten), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  text-align: center;
+  animation: hoch 0.45s var(--feder);
+}
+
+/* ---------- Bewegung ---------- */
+
+@keyframes treib {
+  from { transform: translate3d(-3%, -2%, 0) scale(1); }
+  to { transform: translate3d(4%, 3%, 0) scale(1.12); }
+}
+@keyframes tropfen-a {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(-70px, 60px) scale(1.25); }
+}
+@keyframes tropfen-b {
+  from { transform: translate(0, 0) scale(1.1); }
+  to { transform: translate(90px, -50px) scale(0.9); }
+}
+@keyframes schwapp {
+  0% { transform: scale(1, 1); }
+  35% { transform: scale(1.22, 0.82); }
+  70% { transform: scale(0.95, 1.06); }
+  100% { transform: scale(1, 1); }
+}
+@keyframes herein {
+  from { opacity: 0; transform: translateY(-18px) scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes blende { from { opacity: 0; } to { opacity: 1; } }
+/* Ohne Endwert: blendet auf die eigene Deckkraft des Elements ein (Fläche 10 %, künftige Linie 38 %). */
+@keyframes auftauchen { from { opacity: 0; } }
+@keyframes hoch {
+  from { opacity: 0; transform: translateY(14px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes hups {
+  0% { transform: scale(0.92); }
+  60% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+@keyframes ring {
+  from { opacity: 0.8; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.7); }
+}
+@keyframes steig {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes breit { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes wachs { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes zieh {
+  from { stroke-dasharray: 1; stroke-dashoffset: 1; }
+  to { stroke-dasharray: 1; stroke-dashoffset: 0; }
+}
+@keyframes plopp {
+  from { opacity: 0; transform: scale(0); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes schimmer {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(320%); }
+}
+@keyframes leuchte {
+  from { background: var(--akzent-zart); }
+  to { background: transparent; }
+}
+
+/* Aufbau nur, wenn der Bereich oder der Monat gewechselt hat, nicht bei jedem Speichern. */
+main.frisch > * { animation: steig 0.5s var(--sanft) both; }
+main.frisch > :nth-child(2) { animation-delay: 50ms; }
+main.frisch > :nth-child(3) { animation-delay: 100ms; }
+main.frisch > :nth-child(4) { animation-delay: 150ms; }
+main.frisch > :nth-child(5) { animation-delay: 200ms; }
+main.frisch > :nth-child(6) { animation-delay: 250ms; }
+main.frisch > :nth-child(n+7) { animation-delay: 300ms; }
+
+main.frisch .fortschritt > span { transform-origin: left; animation: breit 0.9s 0.2s var(--sanft) both; }
+main.frisch .fortschritt > span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(98, 80, 214, 0.35), transparent);
+  animation: schimmer 1.1s 1s ease-out both;
+}
+main.frisch .seg { transform-origin: left; animation: breit 0.7s 0.25s var(--sanft) both; }
+main.frisch .seg:nth-child(2) { animation-delay: 0.31s; }
+main.frisch .seg:nth-child(3) { animation-delay: 0.37s; }
+main.frisch .seg:nth-child(4) { animation-delay: 0.43s; }
+main.frisch .seg:nth-child(n+5) { animation-delay: 0.49s; }
+
+main.frisch .d-monat .reihe-ausgaben,
+main.frisch .d-monat .reihe-fix {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: wachs 0.7s var(--feder) both;
+  animation-delay: calc(0.35s + var(--n, 0) * 60ms);
+}
+main.frisch .d-linie:not(.kommend) { animation: zieh 1s 0.35s ease-out both; }
+main.frisch .d-linie.kommend { animation: auftauchen 0.5s 1.2s ease-out backwards; }
+main.frisch .d-flaeche { animation: auftauchen 0.6s 0.9s ease-out backwards; }
+main.frisch .d-punkt { transform-box: fill-box; transform-origin: center; animation: plopp 0.45s 1.2s var(--feder) both; }
+main.frisch .d-wert { animation: auftauchen 0.4s 1.1s ease-out backwards; }
+
+.posten.neu-zeile { animation: leuchte 1.6s ease-out; }
+.kachel { transition: transform 0.3s var(--feder); }
+.kachel:active { transform: scale(0.97); }
+
+/* Ohne durchscheinendes Glas (ältere Browser) deckend zeichnen. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .tabs, dialog, .kopf { background: var(--flaeche); }
+}
+
+/* Wer Bewegung im System reduziert hat, bekommt eine ruhige App. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
